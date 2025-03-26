@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Picker</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .color-container { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+        .color-box { width: 100px; height: 100px; margin: 5px; cursor: pointer; border: 1px solid #ccc; }
+        .search-bar { margin: 20px; padding: 10px; }
+        .random-btn { padding: 10px; cursor: pointer; background-color: #333; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h1>Color Picker</h1>
+    <input type="text" id="search" class="search-bar" placeholder="Suche nach Farbeigenschaft...">
+    <button class="random-btn" onclick="randomCategory()">Zufällige Gruppe</button>
+    <div id="colors" class="color-container"></div>
+    
+    <script>
+        function generateRandomColor() {
+            let r = Math.floor(Math.random() * 256);
+            let g = Math.floor(Math.random() * 256);
+            let b = Math.floor(Math.random() * 256);
+            return { r, g, b, rgb: `rgb(${r}, ${g}, ${b})` };
+        }
+
+        function categorizeColor(r, g, b) {
+            let brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+            let hue = Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b) * (180 / Math.PI);
+            if (hue < 0) hue += 360;
+
+            if (brightness < 50) return "Sehr Dunkel";
+            if (brightness < 100) return "Dunkel";
+            if (brightness > 200) return "Sehr Hell";
+            if (brightness > 150) return "Hell";
+            if (r === g && g === b) return "Grautöne";
+            if (hue < 30) return "Rot";
+            if (hue < 60) return "Orange";
+            if (hue < 90) return "Gelb";
+            if (hue < 150) return "Grün";
+            if (hue < 210) return "Cyan";
+            if (hue < 270) return "Blau";
+            if (hue < 330) return "Violett";
+            return "Andere Farben";
+        }
+
+        function generateCategories(numColors) {
+            const categories = {};
+            for (let i = 0; i < numColors; i++) {
+                let { r, g, b, rgb } = generateRandomColor();
+                let category = categorizeColor(r, g, b);
+                if (!categories[category]) categories[category] = [];
+                categories[category].push(rgb);
+            }
+            return categories;
+        }
+
+        const colors = generateCategories(5000);
+        
+        function displayColors(category) {
+            const container = document.getElementById("colors");
+            container.innerHTML = "";
+            if (colors[category]) {
+                colors[category].forEach(color => {
+                    const div = document.createElement("div");
+                    div.className = "color-box";
+                    div.style.backgroundColor = color;
+                    div.onclick = () => navigator.clipboard.writeText(color);
+                    container.appendChild(div);
+                });
+            }
+        }
+        
+        function randomCategory() {
+            const keys = Object.keys(colors);
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
+            displayColors(randomKey);
+        }
+        
+        document.getElementById("search").addEventListener("input", function() {
+            const query = this.value.toLowerCase();
+            const foundCategory = Object.keys(colors).find(category => category.toLowerCase().includes(query));
+            if (foundCategory) displayColors(foundCategory);
+        });
+        
+        randomCategory();
+    </script>
+</body>
+</html>
