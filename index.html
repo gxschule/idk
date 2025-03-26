@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive JavaScript-Funktionen</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>JavaScript Playground</h1>
+        <nav>
+            <ul>
+                <li><a href="#arrays">Arrays</a></li>
+                <li><a href="#loops">Schleifen</a></li>
+                <li><a href="#functions">Funktionen</a></li>
+                <li><a href="#events">Ereignisse</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="arrays">
+            <h2>Arrays – Die Sammlung von Werten</h2>
+            <p>Ziehe die Objekte in den Korb und sortiere sie!</p>
+            <div class="interactive">
+                <div class="drag-box" id="box1" draggable="true">Apple</div>
+                <div class="drag-box" id="box2" draggable="true">Banana</div>
+                <div class="drag-box" id="box3" draggable="true">Orange</div>
+                <div class="drop-area" id="drop-area"></div>
+            </div>
+        </section>
+
+        <section id="loops">
+            <h2>Schleifen – Wiederhole Aufgaben!</h2>
+            <p>Bewege den Ball immer wieder, um zu sehen, wie Schleifen funktionieren!</p>
+            <div id="ball"></div>
+            <button onclick="startLoop()">Start Schleife</button>
+        </section>
+
+        <section id="functions">
+            <h2>Funktionen – Erstelle wiederverwendbare Aktionen!</h2>
+            <p>Gib einen Namen ein und klicke auf 'Funktion ausführen', um eine benutzerdefinierte Nachricht zu sehen!</p>
+            <input type="text" id="name" placeholder="Dein Name">
+            <button onclick="greetUser()">Funktion ausführen</button>
+            <p id="message"></p>
+        </section>
+
+        <section id="events">
+            <h2>Ereignisse – Interagiere mit der Seite!</h2>
+            <p>Klicke auf den Button und ändere die Hintergrundfarbe!</p>
+            <button onclick="changeBackgroundColor()">Farbe ändern</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>Erstellt von [Dein Name]</p>
+    </footer>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
