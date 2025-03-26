@@ -1,0 +1,77 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+h1 {
+    font-size: 2.5rem;
+}
+
+main {
+    padding: 20px;
+}
+
+h2 {
+    color: #333;
+}
+
+.interactive {
+    display: flex;
+    gap: 10px;
+}
+
+.drag-box {
+    padding: 10px;
+    background-color: #3e8e41;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.drop-area {
+    width: 200px;
+    height: 200px;
+    border: 2px dashed #333;
+    background-color: #f0f0f0;
+}
+
+#ball {
+    width: 50px;
+    height: 50px;
+    background-color: red;
+    border-radius: 50%;
+    position: relative;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
