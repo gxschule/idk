@@ -115,10 +115,10 @@
             let x, y;
             if (event.touches) {
                 x = event.touches[0].clientX - rect.left;
-                y = event.touches[0].clientY - rect.top - 25; // Fix für die Toolbar-Höhe
+                y = event.touches[0].clientY - rect.top - 25; 
             } else {
                 x = event.clientX - rect.left;
-            y = event.clientY - rect.top - 25; // Fix für Maus-Events
+            y = event.clientY - rect.top - 25; 
             }
             return { x, y };
         }
@@ -145,13 +145,27 @@
             if (!drawing) return;
             event.preventDefault();
             const pos = getCursorPosition(event);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-        }
+
+            if (straightenMode) {
+                const dx = Math.abs(pos.x - lastX);
+                const dy = Math.abs(pos.y - lastY);
+
+                if (dx > dy) {
+                    ctx.lineTo(pos.x, lastY);
+                } else {
+                    ctx.lineTo(lastX, pos.y);
+                }
+           } else {
+               ctx.lineTo(pos.x, pos.y);
+          }
+          ctx.stroke();
+       }
+
 
         function stopDrawing() {
             drawing = false;
             ctx.closePath();
+            clearTimeout(straighteningTimeout);
             if (showGrid) drawGrid();
         }
 
