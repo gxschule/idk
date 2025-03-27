@@ -85,6 +85,10 @@
         let undoStack = [];
         let redoStack = [];
         let showGrid = false;
+        let lastX = 0, lastY = 0;
+        let straighteningTimeout;
+        let straightenMode = false;
+
 
         document.getElementById("colorPicker").value = currentColor;
         document.getElementById("brushSize").value = brushSize;
@@ -131,6 +135,10 @@
             ctx.lineJoin = "round";
             ctx.moveTo(pos.x, pos.y);
             saveState();
+
+            straighteningTimeout = setTimeout(() => {
+                straightenMode = true;
+            }, 300);
         }
 
         function draw(event) {
