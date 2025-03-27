@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfekter Kreis</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid black;
+            touch-action: none;
+        }
+        #score {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Zeichne einen perfekten Kreis!</h1>
+    <canvas id="drawCanvas" width="400" height="400"></canvas>
+    <br>
+    <button onclick="clearCanvas()">Neu zeichnen</button>
+    <button onclick="evaluateCircle()">Bewerten</button>
+    <p id="score">Score: -</p>
+
+    <script>
+        const canvas = document.getElementById("drawCanvas");
+        const ctx = canvas.getContext("2d");
+        let drawing = false;
+        let points = [];
+
+        canvas.addEventListener("mousedown", startDrawing);
+        canvas.addEventListener("mousemove", draw);
+        canvas.addEventListener("mouseup", stopDrawing);
+        canvas.addEventListener("mouseleave", stopDrawing);
+
+        function startDrawing(event) {
+            drawing = true;
+            points = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+        }
+
+        function draw(event) {
+            if (!drawing) return;
+            const x = event.offsetX;
+            const y = event.offsetY;
+            points.push({x, y});
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            drawing = false;
+            ctx.closePath();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById("score").textContent = "Score: -";
+        }
+
+        function evaluateCircle() {
+            if (points.length < 10) return alert("Zeichne zuerst einen Kreis!");
+            
+            let minX = Math.min(...points.map(p => p.x));
+            let maxX = Math.max(...points.map(p => p.x));
+            let minY = Math.min(...points.map(p => p.y));
+            let maxY = Math.max(...points.map(p => p.y));
+            let width = maxX - minX;
+            let height = maxY - minY;
+            
+            let ratio = Math.min(width, height) / Math.max(width, height);
+            let score = Math.round(ratio * 100);
+            document.getElementById("score").textContent = "Score: " + score + "%";
+        }
+    </script>
+</body>
+</html>
