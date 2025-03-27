@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiteboard Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: white;
+            overflow: hidden;
+        }
+        #toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #2c2c2c;
+            padding: 10px;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.2);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 10;
+        }
+        button, select, input {
+            background-color: #ff4500;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background-color: #ff6347;
+        }
+        input[type="color"] {
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        canvas {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 50px);
+            background: white;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        🎨 Farbe: <input type="color" id="colorPicker" value="#000000">
+        ✏️ Pinsel: 
+        <select id="brushSize">
+            <option value="2">Dünn</option>
+            <option value="5" selected>Mittel</option>
+            <option value="10">Dick</option>
+            <option value="20">Extra Dick</option>
+        </select>
+        <button onclick="toggleEraser()">🧽 Radierer</button>
+        <button onclick="undo()">↩️ Rückgängig</button>
+        <button onclick="redo()">↪️ Wiederholen</button>
+        <button onclick="clearCanvas()">🗑️ Löschen</button>
+        <button onclick="saveCanvas()">💾 Speichern</button>
+        <button onclick="downloadCanvas()">📥 Download</button>
+        <button onclick="toggleGrid()">📏 Raster</button>
+    </div>
+    <canvas id="drawCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("drawCanvas");
+        const ctx = canvas.getContext("2d");
+        let drawing = false;
+        let eraserMode = false;
+        let currentColor = "#000000";
+        let brushSize = 5;
+        let undoStack = [];
+        let redoStack = [];
+        let showGrid = false;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 50;
+            loadFromLocalStorage();
+        }
+
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        function saveState() {
+            undoStack.push(canvas.toDataURL());
+            redoStack = [];
+            saveToLocalStorage();
+        }
+
+        function getTouchPos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (evt.touches ? evt.touches[0].clientX : evt.clientX) - rect.left,
+                y: (evt.touches ? evt.touches[0].clientY : evt.clientY) - rect.top
+            };
+        }
+
+        function startDrawing(event) {
+            drawing = true;
+            ctx.beginPath();
+            ctx.strokeStyle = eraserMode ? "white" : currentColor;
+            ctx.lineWidth = brushSize;
+            saveState();
+            event.preventDefault();
+        }
+
+        function draw(event) {
+            if (!drawing) return;
+            const pos = getTouchPos(event);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            event.preventDefault();
+        }
+
+        function stopDrawing() {
+            drawing = false;
+            ctx.closePath();
+            if (showGrid) drawGrid();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            saveToLocalStorage();
+        }
+
+        function toggleEraser() {
+            eraserMode = !eraserMode;
+        }
+
+        function saveCanvas() {
+            localStorage.setItem("whiteboardDrawing", canvas.toDataURL());
+            alert("Zeichnung gespeichert!");
+        }
+
+        function loadFromLocalStorage() {
+            let savedImage = localStorage.getItem("whiteboardDrawing");
+            if (savedImage) {
+                let img = new Image();
+                img.src = savedImage;
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    if (showGrid) drawGrid();
+                };
+            }
+        }
+
+        function downloadCanvas() {
+            const link = document.createElement("a");
+            link.download = "whiteboard.png";
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function undo() {
+            if (undoStack.length > 0) {
+                redoStack.push(canvas.toDataURL());
+                let lastState = undoStack.pop();
+                let img = new Image();
+                img.src = lastState;
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    saveToLocalStorage();
+                    if (showGrid) drawGrid();
+                };
+            }
+        }
+
+        function redo() {
+            if (redoStack.length > 0) {
+                undoStack.push(canvas.toDataURL());
+                let nextState = redoStack.pop();
+                let img = new Image();
+                img.src = nextState;
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    saveToLocalStorage();
+                    if (showGrid) drawGrid();
+                };
+            }
+        }
+
+        function drawGrid() {
+            const spacing = 50;
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(200, 200, 200, 0.3)";
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += spacing) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+            }
+            for (let y = 0; y < canvas.height; y += spacing) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+            }
+            ctx.stroke();
+        }
+
+        function toggleGrid() {
+            showGrid = !showGrid;
+            if (showGrid) drawGrid();
+            else loadFromLocalStorage();
+        }
+
+        document.getElementById("colorPicker").addEventListener("change", (event) => {
+            currentColor = event.target.value;
+            eraserMode = false;
+        });
+
+        document.getElementById("brushSize").addEventListener("change", (event) => {
+            brushSize = event.target.value;
+        });
+
+        canvas.addEventListener("mousedown", startDrawing);
+        canvas.addEventListener("mousemove", draw);
+        canvas.addEventListener("mouseup", stopDrawing);
+        canvas.addEventListener("mouseleave", stopDrawing);
+        canvas.addEventListener("touchstart", startDrawing);
+        canvas.addEventListener("touchmove", draw);
+        canvas.addEventListener("touchend", stopDrawing);
+
+        loadFromLocalStorage();
+    </script>
+</body>
+</html>
