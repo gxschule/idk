@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vokabel Trainer</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+    <script>
+        let vokabeln = [];
+        function extractText() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+
+            Tesseract.recognize(file, 'deu+eng')
+                .then(({ data: { text } }) => {
+                    vokabeln = parseText(text);
+                    document.getElementById('status').innerText = "Vokabeln geladen!";
+                });
+        }
+
+        function parseText(text) {
+            return text.split('\n').map(line => {
+                const cleanedLine = line.replace(/[^a-zA-ZäöüÄÖÜß\- ]/g, '').trim();
+                const parts = cleanedLine.split(/\s*-\s*/);
+                
+                if (parts.length === 2) {
+                    return {
+                        deutsch: parts[0].trim(),
+                        fremdsprache: parts[1].trim(),
+                        beispiel: "Kein Beispiel verfügbar"
+                    };
+                }
+                return null;
+            }).filter(v => v !== null && v.deutsch && v.fremdsprache);
+        }
+
+        function startQuiz() {
+            if (vokabeln.length === 0) {
+                alert("Lade zuerst ein Vokabelbild hoch!");
+                return;
+            }
+
+            const randomVokabel = vokabeln[Math.floor(Math.random() * vokabeln.length)];
+            const eingabe = prompt(`Übersetze: ${randomVokabel.deutsch}`);
+
+            if (eingabe && eingabe.toLowerCase() === randomVokabel.fremdsprache.toLowerCase()) {
+                alert(`Richtig!`);
+            } else {
+                alert(`Falsch! Die richtige Antwort ist: ${randomVokabel.fremdsprache}.`);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Vokabel Trainer</h1>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="extractText()">Vokabeln extrahieren</button>
+    <button onclick="startQuiz()">Lernen starten</button>
+    <p id="status">Bitte lade ein Bild mit Vokabeln hoch.</p>
+</body>
+</html>
