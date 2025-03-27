@@ -111,10 +111,10 @@
             let x, y;
             if (event.touches) {
                 x = event.touches[0].clientX - rect.left;
-                y = event.touches[0].clientY - rect.top - 50; // Fix für die Toolbar-Höhe
+                y = event.touches[0].clientY - rect.top - 25; // Fix für die Toolbar-Höhe
             } else {
                 x = event.clientX - rect.left;
-            y = event.clientY - rect.top - 50; // Fix für Maus-Events
+            y = event.clientY - rect.top - 25; // Fix für Maus-Events
             }
             return { x, y };
         }
