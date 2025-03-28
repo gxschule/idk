@@ -93,7 +93,8 @@
         let lastX = 0, lastY = 0;
         let straighteningTimeout;
         let straightenMode = false;
-        let isSelecting = false, selectionStart = null, selectionRect = null, selectedImage = null, dragging = false;
+        let isSelecting = false, selectionStart = null, selectionBounds = null, selectedImage = null;
+        let dragging = false, offsetX = 0, offsetY = 0;
         let imageData;
 
 
@@ -346,9 +347,11 @@
         function toggleSelectionMode() {
             isSelecting = !isSelecting;
             selectionStart = null;
-            selectionRect = null;
+            selectionBounds = null;
+            selectedImage = null;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
-        
+
         function getCursorPos(event) {
             const rect = canvas.getBoundingClientRect();
             return {
@@ -356,75 +359,86 @@
                 y: (event.touches ? event.touches[0].clientY : event.clientY) - rect.top
             };
         }
-        
+
         function startSelection(event) {
             if (!isSelecting) return;
             selectionStart = getCursorPos(event);
-            selectionRect = null;
-            dragging = false;
+            canvas.addEventListener("mousemove", drawSelection);
+            canvas.addEventListener("touchmove", drawSelection);
         }
-        
-        function updateSelection(event) {
+
+        function drawSelection(event) {
             if (!isSelecting || !selectionStart) return;
             const pos = getCursorPos(event);
-            selectionRect = {
+            selectionBounds = {
                 x: Math.min(selectionStart.x, pos.x),
                 y: Math.min(selectionStart.y, pos.y),
                 width: Math.abs(selectionStart.x - pos.x),
                 height: Math.abs(selectionStart.y - pos.y)
             };
-            redrawCanvas();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(selectionBounds.x, selectionBounds.y, selectionBounds.width, selectionBounds.height);
         }
-        
+
         function finalizeSelection() {
-            if (!isSelecting || !selectionRect) return;
-            selectedImage = ctx.getImageData(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
-            dragging = true;
+            if (!isSelecting || !selectionBounds) return;
+            selectedImage = ctx.getImageData(selectionBounds.x, selectionBounds.y, selectionBounds.width, selectionBounds.height);
             isSelecting = false;
+            canvas.removeEventListener("mousemove", drawSelection);
+            canvas.removeEventListener("touchmove", drawSelection);
         }
-        
-        function moveSelection(event) {
-            if (!dragging || !selectedImage) return;
-            const pos = getCursorPos(event);
-            selectionRect.x = pos.x - selectionRect.width / 2;
-            selectionRect.y = pos.y - selectionRect.height / 2;
-            redrawCanvas();
-        }
-        
+
         function copySelection() {
             if (selectedImage) {
-                ctx.putImageData(selectedImage, selectionRect.x + 10, selectionRect.y + 10);
+                ctx.putImageData(selectedImage, selectionBounds.x + 10, selectionBounds.y + 10);
             }
         }
-        
+
         function cutSelection() {
             if (selectedImage) {
-                ctx.clearRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
+                ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.width, selectionBounds.height);
                 copySelection();
             }
         }
-        
-        function redrawCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (selectionRect) {
-                ctx.strokeStyle = "red";
-                ctx.lineWidth = 2;
-                ctx.strokeRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
-                if (selectedImage) {
-                    ctx.putImageData(selectedImage, selectionRect.x, selectionRect.y);
-                }
+
+        function startDragging(event) {
+            if (!selectedImage) return;
+            const pos = getCursorPos(event);
+            if (pos.x >= selectionBounds.x && pos.x <= selectionBounds.x + selectionBounds.width &&
+                pos.y >= selectionBounds.y && pos.y <= selectionBounds.y + selectionBounds.height) {
+                dragging = true;
+                offsetX = pos.x - selectionBounds.x;
+                offsetY = pos.y - selectionBounds.y;
+                canvas.addEventListener("mousemove", dragSelection);
+                canvas.addEventListener("touchmove", dragSelection);
             }
         }
-        
+
+        function dragSelection(event) {
+            if (!dragging) return;
+            const pos = getCursorPos(event);
+            ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.width, selectionBounds.height);
+            selectionBounds.x = pos.x - offsetX;
+            selectionBounds.y = pos.y - offsetY;
+            ctx.putImageData(selectedImage, selectionBounds.x, selectionBounds.y);
+        }
+
+        function stopDragging() {
+            dragging = false;
+            canvas.removeEventListener("mousemove", dragSelection);
+            canvas.removeEventListener("touchmove", dragSelection);
+        }
+
         canvas.addEventListener("mousedown", startSelection);
-        canvas.addEventListener("mousemove", updateSelection);
+        canvas.addEventListener("touchstart", startSelection);
         canvas.addEventListener("mouseup", finalizeSelection);
-        canvas.addEventListener("mousemove", moveSelection);
-        
-        canvas.addEventListener("touchstart", startSelection, { passive: false });
-        canvas.addEventListener("touchmove", updateSelection, { passive: false });
         canvas.addEventListener("touchend", finalizeSelection);
-        canvas.addEventListener("touchmove", moveSelection, { passive: false });
+        canvas.addEventListener("mousedown", startDragging);
+        canvas.addEventListener("mouseup", stopDragging);
+        canvas.addEventListener("touchstart", startDragging);
+        canvas.addEventListener("touchend", stopDragging);
 
         document.getElementById("colorPicker").addEventListener("change", (e) => localStorage.setItem("currentColor", currentColor = e.target.value));
         document.getElementById("brushSize").addEventListener("input", (e) => localStorage.setItem("brushSize", brushSize = parseInt(e.target.value)));
