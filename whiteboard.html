@@ -72,6 +72,9 @@
         <button onclick="downloadCanvas()">📥 Download</button>
         <button onclick="toggleGrid()">📏 Raster</button>
         <button onclick="fillBucketMode()">🪣 Farbeimer</button>
+        <button onclick="toggleSelectionMode()">🔲 Auswahl</button>
+        <button onclick="duplicateSelection()">📄 Duplizieren</button>
+        <button onclick="cutSelection()">✂️ Ausschneiden</button>
         📤 Bild hochladen: <input type="file" id="uploadImage" accept="image/*" onchange="uploadCanvas(event)">
     </div>
     <canvas id="drawCanvas"></canvas>
@@ -90,6 +93,9 @@
         let lastX = 0, lastY = 0;
         let straighteningTimeout;
         let straightenMode = false;
+        let selectionMode = false;
+        let selectionPath = [];
+        let imageData!
 
 
         document.getElementById("colorPicker").value = currentColor;
@@ -337,6 +343,76 @@
             floodFill(x, y, targetColor, fillColor);
             fillMode = false;
         });
+
+        function toggleSelectionMode() {
+            selectionMode = !selectionMode;
+            selectionPath = [];
+        }
+
+        function startSelection(event) {
+            if (!selectionMode) return;
+            selectionPath = [];
+            const rect = canvas.getBoundingClientRect();
+            selectionPath.push({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+        }
+
+        function drawSelection(event) {
+            if (!selectionMode || selectionPath.length === 0) return;
+            const rect = canvas.getBoundingClientRect();
+            selectionPath.push({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+            ctx.strokeStyle = "red";
+            ctx.beginPath();
+            ctx.moveTo(selectionPath[0].x, selectionPath[0].y);
+            selectionPath.forEach(point => ctx.lineTo(point.x, point.y));
+            ctx.stroke();
+        }
+
+        function finalizeSelection() {
+            if (!selectionMode || selectionPath.length < 3) return;
+            selectionMode = false;
+            ctx.closePath();
+            extractSelection();
+        }
+
+        function extractSelection() {
+            const path = new Path2D();
+            selectionPath.forEach((point, index) => {
+                if (index === 0) {
+                    path.moveTo(point.x, point.y);
+                } else {
+                    path.lineTo(point.x, point.y);
+                }
+            });
+            path.closePath();
+
+            const imageDataTemp = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const newCanvas = document.createElement("canvas");
+            const newCtx = newCanvas.getContext("2d");
+            newCanvas.width = canvas.width;
+            newCanvas.height = canvas.height;
+            newCtx.putImageData(imageDataTemp, 0, 0);
+            newCtx.globalCompositeOperation = "destination-in";
+            newCtx.fill(path);
+            imageData = newCtx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+
+        function duplicateSelection() {
+            if (!imageData) return;
+            ctx.putImageData(imageData, 20, 20);
+        }
+
+        function cutSelection() {
+            if (!imageData) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(imageData, 20, 20);
+        }
+
+        canvas.addEventListener("mousedown", startSelection);
+        canvas.addEventListener("mousemove", drawSelection);
+        canvas.addEventListener("mouseup", finalizeSelection);
+        canvas.addEventListener("touchstart", startSelection);
+        canvas.addEventListener("touchmove", drawSelection);
+        canvas.addEventListener("touchend", finalizeSelection);
 
         document.getElementById("colorPicker").addEventListener("change", (e) => localStorage.setItem("currentColor", currentColor = e.target.value));
         document.getElementById("brushSize").addEventListener("input", (e) => localStorage.setItem("brushSize", brushSize = parseInt(e.target.value)));
