@@ -71,7 +71,7 @@
         <button onclick="saveCanvas()">💾 Speichern</button>
         <button onclick="downloadCanvas()">📥 Download</button>
         <button onclick="toggleGrid()">📏 Raster</button>
-        <button onclick="fillBucket()">🪣 Farbeimer</button>
+        <button onclick="fillBucketMode()">🪣 Farbeimer</button>
         📤 Bild hochladen: <input type="file" id="uploadImage" accept="image/*" onchange="uploadCanvas(event)">
     </div>
     <canvas id="drawCanvas"></canvas>
@@ -285,10 +285,42 @@
             else loadFromLocalStorage();
         }
 
-        function fillBucket() {
-            ctx.fillStyle = document.getElementById("colorPicker").value;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function fillBucketMode() {
+            fillMode = !fillMode;
         }
+
+        function getPixelColor(x, y) {
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            return `${pixel[0]},${pixel[1]},${pixel[2]},${pixel[3]}`;
+        }
+
+        function floodFill(x, y, targetColor, fillColor) {
+            const pixelStack = [[x, y]];
+            while (pixelStack.length > 0) {
+                const [px, py] = pixelStack.pop();
+                if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) continue;
+                if (getPixelColor(px, py) !== targetColor) continue;
+                
+                ctx.fillStyle = fillColor;
+                ctx.fillRect(px, py, 1, 1);
+                
+                pixelStack.push([px + 1, py]);
+                pixelStack.push([px - 1, py]);
+                pixelStack.push([px, py + 1]);
+                pixelStack.push([px, py - 1]);
+            }
+        }
+
+        canvas.addEventListener("click", function(event) {
+            if (!fillMode) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const targetColor = getPixelColor(x, y);
+            const fillColor = document.getElementById("colorPicker").value;
+            floodFill(x, y, targetColor, fillColor);
+            fillMode = false;
+        });
 
         document.getElementById("colorPicker").addEventListener("change", (e) => localStorage.setItem("currentColor", currentColor = e.target.value));
         document.getElementById("brushSize").addEventListener("input", (e) => localStorage.setItem("brushSize", brushSize = parseInt(e.target.value)));
