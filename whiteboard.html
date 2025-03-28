@@ -128,6 +128,11 @@
             event.preventDefault();
             const pos = getCursorPosition(event);
             drawing = true;
+            straightenMode = false;
+            
+            lastX = pos.x;
+            lastY = pos.y;
+            
             ctx.beginPath();
             ctx.strokeStyle = eraserMode ? bgColor : currentColor;
             ctx.lineWidth = brushSize;
