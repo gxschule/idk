@@ -93,8 +93,7 @@
         let lastX = 0, lastY = 0;
         let straighteningTimeout;
         let straightenMode = false;
-        let selectionMode = false;
-        let selectionPath = [];
+        let isSelecting = false, selectionStart = null, selectionRect = null, selectedImage = null, dragging = false;
         let imageData;
 
 
@@ -345,74 +344,87 @@
         });
 
         function toggleSelectionMode() {
-            selectionMode = !selectionMode;
-            selectionPath = [];
+            isSelecting = !isSelecting;
+            selectionStart = null;
+            selectionRect = null;
         }
-
+        
+        function getCursorPos(event) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (event.touches ? event.touches[0].clientX : event.clientX) - rect.left,
+                y: (event.touches ? event.touches[0].clientY : event.clientY) - rect.top
+            };
+        }
+        
         function startSelection(event) {
-            if (!selectionMode) return;
-            selectionPath = [];
-            const rect = canvas.getBoundingClientRect();
-            selectionPath.push({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+            if (!isSelecting) return;
+            selectionStart = getCursorPos(event);
+            selectionRect = null;
+            dragging = false;
         }
-
-        function drawSelection(event) {
-            if (!selectionMode || selectionPath.length === 0) return;
-            const rect = canvas.getBoundingClientRect();
-            selectionPath.push({ x: event.clientX - rect.left, y: event.clientY - rect.top });
-            ctx.strokeStyle = "red";
-            ctx.beginPath();
-            ctx.moveTo(selectionPath[0].x, selectionPath[0].y);
-            selectionPath.forEach(point => ctx.lineTo(point.x, point.y));
-            ctx.stroke();
+        
+        function updateSelection(event) {
+            if (!isSelecting || !selectionStart) return;
+            const pos = getCursorPos(event);
+            selectionRect = {
+                x: Math.min(selectionStart.x, pos.x),
+                y: Math.min(selectionStart.y, pos.y),
+                width: Math.abs(selectionStart.x - pos.x),
+                height: Math.abs(selectionStart.y - pos.y)
+            };
+            redrawCanvas();
         }
-
+        
         function finalizeSelection() {
-            if (!selectionMode || selectionPath.length < 3) return;
-            selectionMode = false;
-            ctx.closePath();
-            extractSelection();
+            if (!isSelecting || !selectionRect) return;
+            selectedImage = ctx.getImageData(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
+            dragging = true;
+            isSelecting = false;
         }
-
-        function extractSelection() {
-            const path = new Path2D();
-            selectionPath.forEach((point, index) => {
-                if (index === 0) {
-                    path.moveTo(point.x, point.y);
-                } else {
-                    path.lineTo(point.x, point.y);
-                }
-            });
-            path.closePath();
-
-            const imageDataTemp = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const newCanvas = document.createElement("canvas");
-            const newCtx = newCanvas.getContext("2d");
-            newCanvas.width = canvas.width;
-            newCanvas.height = canvas.height;
-            newCtx.putImageData(imageDataTemp, 0, 0);
-            newCtx.globalCompositeOperation = "destination-in";
-            newCtx.fill(path);
-            imageData = newCtx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        function moveSelection(event) {
+            if (!dragging || !selectedImage) return;
+            const pos = getCursorPos(event);
+            selectionRect.x = pos.x - selectionRect.width / 2;
+            selectionRect.y = pos.y - selectionRect.height / 2;
+            redrawCanvas();
         }
-
-        function duplicateSelection() {
-            if (!imageData) return;
-            ctx.putImageData(imageData, 20, 20);
+        
+        function copySelection() {
+            if (selectedImage) {
+                ctx.putImageData(selectedImage, selectionRect.x + 10, selectionRect.y + 10);
+            }
         }
-
+        
         function cutSelection() {
-            if (!imageData) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.putImageData(imageData, 20, 20);
+            if (selectedImage) {
+                ctx.clearRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
+                copySelection();
+            }
         }
-
+        
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (selectionRect) {
+                ctx.strokeStyle = "red";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
+                if (selectedImage) {
+                    ctx.putImageData(selectedImage, selectionRect.x, selectionRect.y);
+                }
+            }
+        }
+        
         canvas.addEventListener("mousedown", startSelection);
-        canvas.addEventListener("mousemove", drawSelection);
+        canvas.addEventListener("mousemove", updateSelection);
         canvas.addEventListener("mouseup", finalizeSelection);
-        canvas.addEventListener("touchstart", startSelection);
-        canvas.addEventListener("touchmove", drawSelection);
+        canvas.addEventListener("mousemove", moveSelection);
+        
+        canvas.addEventListener("touchstart", startSelection, { passive: false });
+        canvas.addEventListener("touchmove", updateSelection, { passive: false });
         canvas.addEventListener("touchend", finalizeSelection);
+        canvas.addEventListener("touchmove", moveSelection, { passive: false });
 
         document.getElementById("colorPicker").addEventListener("change", (e) => localStorage.setItem("currentColor", currentColor = e.target.value));
         document.getElementById("brushSize").addEventListener("input", (e) => localStorage.setItem("brushSize", brushSize = parseInt(e.target.value)));
