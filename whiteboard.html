@@ -71,6 +71,7 @@
         <button onclick="saveCanvas()">💾 Speichern</button>
         <button onclick="downloadCanvas()">📥 Download</button>
         <button onclick="toggleGrid()">📏 Raster</button>
+        <button onclick="fillBucket()">🪣 Farbeimer</button>
         📤 Bild hochladen: <input type="file" id="uploadImage" accept="image/*" onchange="uploadCanvas(event)">
     </div>
     <canvas id="drawCanvas"></canvas>
@@ -282,6 +283,11 @@
             showGrid = !showGrid;
             if (showGrid) drawGrid();
             else loadFromLocalStorage();
+        }
+
+        function fillBucket() {
+            ctx.fillStyle = document.getElementById("colorPicker").value;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         document.getElementById("colorPicker").addEventListener("change", (e) => localStorage.setItem("currentColor", currentColor = e.target.value));
