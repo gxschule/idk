@@ -150,7 +150,7 @@
         })
         .catch(err => {
           console.error("Fehler beim Laden der Daten:", err);
-          document.getElementById("loader").innerText = "⚠️ Fehler beim Laden der Daten!";
+          document.getElementById("loader").innerText = "⚠️ Fehler: " + err.message;
         });
     }
 
