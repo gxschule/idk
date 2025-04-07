@@ -82,12 +82,12 @@
     const markers = L.markerClusterGroup();
     map.addLayer(markers);
 
-    function createColoredIcon(color) {
-      return new L.Icon({
-        iconUrl: `https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|${color}`,
-        iconSize: [21, 34],
-        iconAnchor: [10, 34],
-        popupAnchor: [0, -30]
+    function createEmojiIcon(emoji) {
+      return new L.DivIcon({
+        html: `<div style="font-size: 24px;">${emoji}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -25]
       });
     }
 
@@ -117,7 +117,7 @@
         data.elements.forEach(el => {
           if (el.lat && el.lon && el.tags?.name) {
             const cat = detectCategory(el.tags.name);
-            const icon = createColoredIcon(cat.color);
+            const icon = createEmojiIcon(cat.emoji);
             const marker = L.marker([el.lat, el.lon], { icon }).bindPopup(`<b>${el.tags.name}</b>`);
             markers.addLayer(marker);
             count++;
