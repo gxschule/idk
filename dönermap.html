@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weltweite Döner Map</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <style>
+    html, body { margin: 0; height: 100%; }
+    #map { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map').setView([20, 0], 2); // Weltkarte
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap-Mitwirkende'
+    }).addTo(map);
+
+    const markers = L.markerClusterGroup();
+    map.addLayer(markers);
+
+    const loadedBounds = [];
+
+    function hasAlreadyLoaded(bounds) {
+      return loadedBounds.some(b => b.contains(bounds));
+    }
+
+    function fetchDöner(bounds) {
+      if (hasAlreadyLoaded(bounds)) return;
+
+      loadedBounds.push(bounds);
+
+      const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+      const query = `
+        [out:json][timeout:25];
+        node["amenity"="fast_food"]["name"~"Döner",i](${bbox});
+        out body;
+      `;
+      const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          data.elements.forEach(el => {
+            if (el.lat && el.lon) {
+              const name = el.tags?.name || "Dönerladen";
+              const marker = L.marker([el.lat, el.lon]).bindPopup(name);
+              markers.addLayer(marker);
+            }
+          });
+        })
+        .catch(err => {
+          console.error("Fehler beim Laden der Dönerläden:", err);
+        });
+    }
+
+    // Initial load
+    fetchDöner(map.getBounds());
+
+    // Nachladen bei Bewegung
+    map.on("moveend", () => {
+      fetchDöner(map.getBounds());
+    });
+  </script>
+</body>
+</html>
