@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fast-Food & Essensläden Map</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      z-index: 999;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .legend-color {
+      width: 18px;
+      height: 18px;
+      margin-right: 6px;
+    }
+    #loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.9);
+      padding: 20px 30px;
+      font-size: 18px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    .toggle-btn {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      z-index: 1001;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button id="toggle" class="toggle-btn">Zeige Essensläden</button>
+  <div class="legend" id="legend"></div>
+  <div id="loader">🍟 Lade Läden...</div>
+
+  <script>
+    const map = L.map('map').setView([51.1657, 10.4515], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap-Mitwirkende'
+    }).addTo(map);
+
+    const fastFoodCategories = [
+      { key: "Döner", keywords: ["döner"], emoji: "🌯" },
+      { key: "Pizza", keywords: ["pizza"], emoji: "🍕" },
+      { key: "Burger", keywords: ["burger", "mcdonald", "king"], emoji: "🍔" },
+      { key: "Asia", keywords: ["asia", "china", "thai", "wok"], emoji: "🍣" },
+      { key: "Sonstiges", keywords: [], emoji: "🍴" }
+    ];
+
+    const restaurantCategories = [
+      { key: "Restaurant", keywords: ["restaurant"], emoji: "🍽️" },
+      { key: "Café", keywords: ["café", "coffee"], emoji: "☕" },
+      { key: "Bar", keywords: ["bar"], emoji: "🍹" },
+      { key: "Sonstiges", keywords: [], emoji: "🍴" }
+    ];
+
+    let currentCategories = fastFoodCategories;
+    const markers = L.markerClusterGroup();
+    map.addLayer(markers);
+
+    function createEmojiIcon(emoji) {
+      return new L.DivIcon({
+        html: `<div style="font-size: 24px;">${emoji}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -25]
+      });
+    }
+
+    function detectCategory(name, categories) {
+      const lower = name.toLowerCase();
+      for (let cat of categories) {
+        if (cat.key !== "Sonstiges") {
+          if (cat.keywords.some(k => lower.includes(k))) {
+            return cat;
+          }
+        }
+      }
+      return categories.find(c => c.key === "Sonstiges");
+    }
+
+    function fetchMarkers(categoryType) {
+      const query = `
+        [out:json][timeout:25];
+        node["amenity"="fast_food"](48.0,5.5,55.0,15.5);
+        node["amenity"="restaurant"](48.0,5.5,55.0,15.5);
+        out body;
+      `;
+      const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          markers.clearLayers();
+          let count = 0;
+          data.elements.forEach(el => {
+            if (el.lat && el.lon && el.tags?.name) {
+              const cat = detectCategory(el.tags.name, categoryType);
+              const icon = createEmojiIcon(cat.emoji);
+              const marker = L.marker([el.lat, el.lon], { icon }).bindPopup(`<b>${el.tags.name}</b>`);
+              markers.addLayer(marker);
+              count++;
+            }
+          });
+          document.getElementById("loader").style.display = "none";
+          console.log(`✅ ${count} Läden geladen`);
+        })
+        .catch(err => {
+          document.getElementById("loader").innerText = "⚠️ Fehler beim Laden der Daten!";
+          console.error("Ladefehler:", err);
+        });
+    }
+
+    // Toggle Button für Fast-Food und Essensläden
+    document.getElementById("toggle").addEventListener("click", function() {
+      if (this.innerHTML === "Zeige Essensläden") {
+        currentCategories = restaurantCategories;
+        this.innerHTML = "Zeige Fast-Food";
+      } else {
+        currentCategories = fastFoodCategories;
+        this.innerHTML = "Zeige Essensläden";
+      }
+      document.getElementById("loader").style.display = "block";
+      fetchMarkers(currentCategories);
+    });
+
+    // Initiale Marker-Ladung
+    fetchMarkers(currentCategories);
+
+    // Legende erstellen
+    const legend = document.getElementById("legend");
+    currentCategories.forEach(cat => {
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.innerHTML = `<div class="legend-color">${cat.emoji}</div>${cat.key}`;
+      legend.appendChild(item);
+    });
+  </script>
+</body>
+</html>
