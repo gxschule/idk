@@ -136,7 +136,7 @@
     categories.forEach(cat => {
       const item = document.createElement("div");
       item.className = "legend-item";
-      item.innerHTML = `<div class="legend-color" style="background:${cat.color}"></div>${cat.key}`;
+      item.innerHTML = `<div class="legend-color">${cat.emoji}</div>${cat.key}`;
       legend.appendChild(item);
     });
   </script>
