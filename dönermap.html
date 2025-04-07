@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Döner Map – schnell!</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([51.1657, 10.4515], 6); // Deutschland
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap-Mitwirkende'
+    }).addTo(map);
+
+    // Canvas Layer aktivieren für bessere Performance
+    const layerGroup = L.layerGroup([], { renderer: L.canvas() }).addTo(map);
+
+    const query = `
+      [out:json][timeout:25];
+      node["amenity"="fast_food"]["name"~"Döner",i](48.0,5.5,55.0,15.5);
+      out body;
+    `;
+    const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        data.elements.forEach(el => {
+          if (el.lat && el.lon) {
+            const name = el.tags?.name || "Unbenannter Dönerladen";
+            const circle = L.circleMarker([el.lat, el.lon], {
+              radius: 5,
+              color: "#c00",
+              fillColor: "#f44",
+              fillOpacity: 0.8,
+              renderer: L.canvas()
+            }).bindPopup(name);
+
+            layerGroup.addLayer(circle);
+          }
+        });
+      })
+      .catch(err => {
+        console.error("Fehler beim Laden der Daten:", err);
+      });
+  </script>
+</body>
+</html>
