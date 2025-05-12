@@ -2,26 +2,52 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Chemischer Molekülbaukasten</title>
+  <title>Chemische Moleküle</title>
   <script src="https://unpkg.com/kekule/dist/kekule.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/kekule/dist/themes/default/kekule.css">
   <style>
     html, body {
       height: 100%;
       margin: 0;
+      font-family: sans-serif;
     }
-    #chemEditor {
+    #controls {
+      padding: 10px;
+      background: #f0f0f0;
+    }
+    #editorContainer {
       width: 100%;
-      height: 100vh;
+      height: calc(100vh - 60px);
     }
   </style>
 </head>
 <body>
-  <div id="chemEditor"></div>
 
-  <script>
-    const editor = new Kekule.Editor.Composer(document.getElementById('chemEditor'));
-    editor.setPredefinedSetting('fullFunc'); // Alle Werkzeuge aktivieren
-  </script>
+<div id="controls">
+  <label for="smilesInput">SMILES eingeben (z. B. C für CH₄, O für H₂O, C1=CC=CC=C1 für Benzol):</label>
+  <input type="text" id="smilesInput" value="C" />
+  <button onclick="loadSmiles()">Laden</button>
+</div>
+
+<div id="editorContainer"></div>
+
+<script>
+  const editor = new Kekule.Editor.Composer(document.getElementById('editorContainer'));
+  editor.setPredefinedSetting('fullFunc');
+
+  function loadSmiles() {
+    const smiles = document.getElementById('smilesInput').value;
+    try {
+      const mol = Kekule.IO.loadFormatData(smiles, 'smi');
+      editor.setChemObj(mol);
+    } catch (e) {
+      alert("Ungültiger SMILES-String.");
+    }
+  }
+
+  loadSmiles(); 
+</script>
+
 </body>
 </html>
+
