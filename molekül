@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Interaktiver Molekülbaukasten</title>
+  <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+  <style>
+    #viewer { width: 100%; height: 600px; position: relative; }
+    #controls { margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>Interaktiver Molekülbaukasten</h2>
+<div id="viewer"></div>
+
+<div id="controls">
+  <label for="pdb">PDB-ID oder Dateiinhalt:</label>
+  <input type="text" id="pdb" value="1bna" />
+  <button onclick="loadMolecule()">Laden</button>
+</div>
+
+<script>
+  let viewer = $3Dmol.createViewer("viewer", {
+    backgroundColor: "white"
+  });
+
+  function loadMolecule() {
+    let pdb = document.getElementById("pdb").value;
+    viewer.clear();
+    $3Dmol.download(`pdb:${pdb}`, viewer, {}, function() {
+      viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
+      viewer.zoomTo();
+      viewer.render();
+    });
+  }
+
+  loadMolecule(); // Initiales Laden
+</script>
+
+</body>
+</html>
