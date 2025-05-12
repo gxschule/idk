@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chemischer Molekülbaukasten</title>
+  <script src="https://unpkg.com/kekule/dist/kekule.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/kekule/dist/themes/default/kekule.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    #chemEditor {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="chemEditor"></div>
+
+  <script>
+    const editor = new Kekule.Editor.Composer(document.getElementById('chemEditor'));
+    editor.setPredefinedSetting('fullFunc'); // Alle Werkzeuge aktivieren
+  </script>
+</body>
+</html>
