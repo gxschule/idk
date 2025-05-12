@@ -36,14 +36,16 @@
   editor.setPredefinedSetting('fullFunc');
 
   function loadSmiles() {
-    const smiles = document.getElementById('smilesInput').value;
-    try {
-      const mol = Kekule.IO.loadFormatData(smiles, 'smi');
-      editor.setChemObj(mol);
-    } catch (e) {
-      alert("Ungültiger SMILES-String.");
-    }
+  const smiles = document.getElementById('smilesInput').value;
+  const reader = new Kekule.IO.SMILESReader();
+  try {
+    const mol = reader.readData(smiles);
+    editor.setChemObj(mol);
+  } catch (e) {
+    alert("Ungültiger SMILES-String oder Parserfehler.");
+    console.error(e);
   }
+}
 
   loadSmiles(); 
 </script>
